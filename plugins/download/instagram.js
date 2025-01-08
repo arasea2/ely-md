@@ -13,12 +13,10 @@ let handler = async (m, { conn, usedPrefix, args, command, text }) => {
   try {
     const res = await axios.get(`https://api.ryzendesu.vip/api/downloader/igdl?url=${args[0]}`)
     for (let i of res.data.data) {
-      for (let a of i.url) {
-        if (a.ext == 'jpg' || a.ext == 'png' || a.ext == 'jpeg' || a.ext == 'webp' || a.ext == 'heic' || a.ext == 'tiff' || a.ext == 'bmp') {
-          await conn.sendMsg(m.chat, { image: { url: a.url } }, { quoted: m })
-        } else {
-          await conn.sendMsg(m.chat, { video: { url: a.url } }, { quoted: m })
-        }
+      if (a.url.includes('jpg') || a.url.includes('png') || a.url.includes('jpeg') || a.url.includes('webp') || a.url.includes('heic') || a.url.includes('tiff') || a.url.includes('bmp')) {
+        await conn.sendMsg(m.chat, { image: { url: a.url } }, { quoted: m })
+      } else {
+        await conn.sendMsg(m.chat, { video: { url: a.url } }, { quoted: m })
       }
     }
   } catch (e) {
