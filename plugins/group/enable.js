@@ -279,6 +279,17 @@ let handler = async (m, { conn, usedPrefix, command, args, isOwner, isBotAdmin, 
 			}
 			global.opts['self'] = isEnable
 			break
+		case 'fkontaktele':
+			isAll = true
+			if (!isROwner) {
+				global.dfail('rowner', m, conn)
+				throw false
+			} else if (!m.isGroup) {
+				global.dfail('group', m, conn)
+				throw false
+			}
+			chat.fkontakTbot = isEnable
+			break
 		case 'restrict':
 			isAll = true
 			if (!isOwner) {

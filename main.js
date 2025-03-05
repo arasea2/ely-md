@@ -1,4 +1,4 @@
-process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0'
+process.env['NODE_TLS_REJECT_UNAUTHORIZED'] = '0';
 process.on('uncaughtException', console.error)
 
 import './config.js'
@@ -6,13 +6,14 @@ import cfonts from 'cfonts'
 import Connection from './lib/connection.js'
 import Helper from './lib/helper.js'
 import db from './lib/database.js'
-import os from 'os'
 import clearTmp from './lib/clearTmp.js'
 import clearSessions from './lib/clearSessions.js'
 import { createRequire } from 'module'
 import { fileURLToPath } from 'url'
 import { join, dirname } from 'path'
 import { spawn } from 'child_process'
+import { Telegraf } from 'telegraf'
+import { delay, mime, ranNumb } from './lib/func.js'
 import { protoType, serialize } from './lib/simple.js'
 import {
 	plugins,
@@ -27,7 +28,8 @@ const require = createRequire(__dirname) // Bring in the ability to create the '
 const args = [join(__dirname, 'main.js'), ...process.argv.slice(2)]
 const PORT = process.env.PORT || process.env.SERVER_PORT || 3000
 const { say } = cfonts
-const { name, author } = require(join(__dirname, './package.json')) // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/	
+const { name, author } = require(join(__dirname, './package.json')) // https://www.stefanjudis.com/snippets/how-to-import-json-files-in-es-modules-node-js/
+//const { users, chats } = require(join(__dirname, './database.json'))
 
 say('Lightweight\nWhatsApp Bot', {
 	font: 'chrome',
@@ -46,6 +48,111 @@ say([process.argv[0], ...args].join(' '), {
 	gradient: ['red', 'magenta']
 })
 
+const config = {
+	tele_token: '0000000000:XXXXXXXXXXXXXXXX-ZzZzZZZZzzz', // get token from @BotFather
+	// you can add more telegramchatid, make sure your telegram bot is join the channel
+	'-0123445678': ['111111111111111@g.us','12345678@s.whatsapp.net'],
+	// 'addmore': ['xxx']
+}
+
+const MAX_ATTEMPTS = 3
+const RETRY_DELAY = 5000
+const startTBot = (attempts = 0) => {
+	const bot = new Telegraf(config.tele_token)
+	bot.start((ctx) => ctx.reply('Welcome!'))
+	bot.on('text', (ctx) => ctx.reply('You said: ' + ctx.message.text))
+	bot.on('channel_post', async (ctx) => {
+		if (opts['nyimak']) return !1
+		let msg = ctx?.update?.channel_post
+		if (!msg || !Object.keys(config).some(v => v == msg.chat.id)) return !1
+		try {
+			let obj = Object.keys(msg).filter(v => /photo|video|voice|audio|document/.test(v))
+			let jid = conn.user.jid.split('@')[0]
+			let i = 0, arr = [], q = [],
+				x = config[msg.chat.id],
+				y = msg.media_group_id && !msg.caption,
+				txt = (msg.caption ? msg.caption : msg.text ? msg.text : ''),
+				tes = /\d\.\d\.\d(?=\s\(current\))/gi.test(txt)
+			if (msg.entities) {
+				for (let x of msg.entities.filter(v => /pre|bold|strikethrough/.test(v.type || '')))
+					q.push({ type: x.type, txt: txt.slice(x.offset, x.offset+x.length)?.trim() })
+				for (let x of q) {
+					if (/pre/.test(x.type)) txt = txt.replace(x.txt, '```'+x.txt+'```')
+					else if (/bold/.test(x.type)) txt = txt.replace(x.txt, `*${x.txt}*`)
+					else txt = txt.replace(x.txt, `~${x.txt}~`)
+				}
+				msg.entities.filter(v => v.url).forEach(v => { arr.push(v) })
+				txt = txt.replace(/\*+/g, '*').replace(/~+/g, '~')
+			}
+			if (msg.caption_entities) 
+				msg.caption_entities.filter(v => v.url).forEach(v => { arr.push(v) })
+			arr = arr.filter(v => !v.url?.includes('t.me')).map(z => z.url)
+			if (arr.length > 0 && !/\d\.\d\.\d(?=\s\(current\))/gi.test(txt)) txt += '\n\n*[embedded link] :*\n- '+arr.join('\n- ')
+			if (msg.forward_origin) {
+				if (!y) {
+					let f = msg.forward_origin
+					let h = /hidden/.test(f.type)
+					txt = `- *${h ? 'hidden_user' : f.chat ? (f.chat.username || f.chat.type) : (f.sender_user?.username || f.sender_chat?.type || `hidden_${f.type}`)}`
+				} else txt = ''
+			}
+			let quoo, id = msg.photo ? msg.photo.pop().file_id : msg[obj[0]]?.file_id
+			if (txt) txt = txt.replace(/  +/g, ' ').replace(/\n\*?News Channel\*? \*?-\*? \*?Join Discussion Group\*?/g, '')
+			do {
+				quoo = db.data.chats[x[i]].fkontakTbot ? fkontakbot : null
+				if (obj.length > 0) {
+					let url = await ctx.telegram.getFileLink(id)
+					let fileName = msg.document?.file_name || url.pathname.split('/').pop()
+					if (/voice|audio/.test(obj[0])) {
+						let send = await conn.sendFile(x[i], url.href, fileName, '', quoo, /voice/.test(obj[0]) ? true : false, {}, true)
+						if (msg[obj[0]]?.file_name) await conn.reply(x[i], txt ? (txt+'\n\n'+msg[obj[0]]?.file_name) : msg[obj[0]]?.file_name, send)
+					} else await conn.sendFile(x[i], url.href, fileName, txt, y ? null
+						: quoo, true, { mimetype: mime[fileName.split('.').pop()], ptv: msg.video_note ? true : false })
+				} else if (msg.text) await conn.reply(x[i], txt, quoo)
+				else console.log(msg)
+				await delay(ranNumb(1500, 3000))
+				i += 1
+			} while (i > 0 && i < x.length)
+		} catch (e) {
+			console.log(e)
+		}
+	})
+
+	bot.launch().then(() => {
+		console.log('TeleBot started successfully')
+	}).catch((err) => {
+		console.warn('TeleBot Failed to Launch:', err.message)
+		handleReconnect(attempts)
+	})
+
+	bot.on('stopping', async () => {
+		console.warn('TeleBot is stopping...')
+		await bot.stop()
+		handleReconnect(attempts)
+	})
+
+	bot.on('error', (err) => {
+		console.warn('TeleBot encountered an error:', err.message)
+		handleReconnect(attempts)
+	})
+}
+
+const handleReconnect = (attempts) => {
+	do {
+		attempts++
+		console.log(`Reconnect attempt (${attempts}/${MAX_ATTEMPTS})...`)
+		const waitForRetry = new Promise(resolve => setTimeout(resolve, RETRY_DELAY))
+		waitForRetry.then(() => {
+			if (attempts < MAX_ATTEMPTS) {
+				startTBot(attempts)
+			} else {
+				console.log('Max attempts reached. Exiting Telebot...')
+			}
+		})
+		return
+	} while (attempts < MAX_ATTEMPTS)
+}
+
+startTBot()
 protoType()
 serialize()
 
@@ -56,8 +163,6 @@ Object.assign(global, {
 		start: Date.now()
 	}
 })
-
-// global.opts['db'] = process.env['db']
 
 /** @type {import('./lib/connection.js').Socket} */
 const conn = Object.defineProperty(Connection, 'conn', {
@@ -76,16 +181,23 @@ loadPluginFiles(pluginFolder, pluginFilter, {
 
 
 if (!opts['test']) {
+	(await import('./server.js')).default(conn, PORT)
 	setInterval(async () => {
 		await Promise.allSettled([
 			db.data ? db.write() : Promise.reject('db.data is null'),
 			clearTmp(),
 			clearSessions()
 		])
-		Connection.store.writeToFile(Connection.storeFile)
+		/*for (let x of Object.keys(users)) {
+			if (!db.data.users[x]) {
+				db.data.users[x] = users[x]
+				console.log(`'${x}' added to database`)
+				break
+			}
+		}*/
+		//Connection.store.writeToFile(Connection.storeFile)
 	}, 1000 * 60 * 5) // save every 5 minute
 }
-if (opts['server']) (await import('./server.js')).default(conn, PORT)
 
 // Quick Test
 async function _quickTest() {

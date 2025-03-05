@@ -59,7 +59,6 @@ export async function handler(chatUpdate) {
 					if (!('permaban' in user)) user.permaban = false
 					if (!isNumber(user.lastbanned)) user.lastbanned = 0
 					if (!isNumber(user.bannedcd)) user.bannedcd = 0
-					if (!isNumber(user.warn)) user.warn = 0
 					if (!isNumber(user.level)) user.level = 0
 					if (!('role' in user)) user.role = 'Beginner'
 					if (!('autolevelup' in user)) user.autolevelup = true
@@ -270,7 +269,6 @@ export async function handler(chatUpdate) {
 					permaban: false,
 					lastbanned: 0,
 					bannedcd: 0,
-					warn: 0,
 					level: 0,
 					role: 'Beginner',
 					autolevelup: true,
@@ -513,6 +511,7 @@ export async function handler(chatUpdate) {
 					if (!('antiToxic' in chat)) chat.antiToxic = false
 					if (!('antiUncheck' in chat)) chat.antiUncheck = false
 					if (!('antiLinkKick' in chat)) chat.antiLinkKick = false
+					if (!('fkontakTbot' in chat)) chat.fkontakTbot = false
 					if (!('adminonly' in chat)) chat.adminonly = false
 					if (!('owneronly' in chat)) chat.owneronly = false
 					if (!('antivirus' in chat)) chat.antivirus = false
@@ -530,6 +529,7 @@ export async function handler(chatUpdate) {
 					if (!isNumber(chat.lastmute)) chat.lastmute = 0
 					if (!isNumber(chat.mutecd)) chat.mutecd = 0
 					if (!isNumber(chat.spamcount)) chat.spamcount = 0
+					if (!('warn' in chat)) chat.warn = {}
 				} else db.data.chats[m.chat] = {
 					presence: false,
 					isBanned: false,
@@ -547,6 +547,7 @@ export async function handler(chatUpdate) {
 					antiToxic: false,
 					antiUncheck: false,
 					antiLinkKick: false,
+					fkontakTbot: false,
 					adminonly: false,
 					owneronly: false,
 					antivirus: false,
@@ -564,6 +565,7 @@ export async function handler(chatUpdate) {
 					lastmute: 0,
 					mutecd: 0,
 					spamcount: 0,
+					warn: {},
 				}
 				let akinator = db.data.chats[m.chat].akinator
 				if (typeof akinator !== 'object')

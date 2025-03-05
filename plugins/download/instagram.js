@@ -21,12 +21,6 @@ let handler = async (m, { conn, usedPrefix, args, command, text }) => {
     }
   } catch (e) {
     console.log(e)
-    await conn.sendMessage(m.chat, {
-      react: {
-        text: "❌",
-        key: m.key,
-      },
-    });
     m.reply(`Error: ${e.message}`);
   }
 }
