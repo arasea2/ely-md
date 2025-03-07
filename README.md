@@ -97,7 +97,6 @@ apt install -y nodejs gcc g++ make
 git clone https://github.com/arasea2/ely-md
 cd ely-md
 npm install
-npm install cheerio@1.0.0-rc.12
 npm start
 ```
 
@@ -114,7 +113,6 @@ npm start
 git clone https://github.com/arasea2/ely-md
 cd ely-md
 npm install
-npm install cheerio@1.0.0-rc.12
 npm start
 ```
 
